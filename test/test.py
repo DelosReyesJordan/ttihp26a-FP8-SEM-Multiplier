@@ -1,40 +1,70 @@
-# SPDX-FileCopyrightText: © 2024 Tiny Tapeout
-# SPDX-License-Identifier: Apache-2.0
-
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import RisingEdge, Timer
+
+
+def sem_mul(a, b):
+    """Very basic SEM multiply reference model (no rounding)."""
+
+    # Extract fields
+    sign_a = (a >> 7) & 1
+    sign_b = (b >> 7) & 1
+
+    exp_a  = (a >> 3) & 0xF
+    exp_b  = (b >> 3) & 0xF
+
+    mant_a = a & 0x7
+    mant_b = b & 0x7
+
+    # NaN
+    if (exp_a == 0xF and mant_a == 0x7) or \
+       (exp_b == 0xF and mant_b == 0x7):
+        return 0b0_1111_111
+
+    # Zero
+    if (exp_a == 0 and mant_a == 0) or \
+       (exp_b == 0 and mant_b == 0):
+        return 0b0_0000_000
+
+    sign = sign_a ^ sign_b
+    exp  = exp_a + exp_b
+    mant = (mant_a * mant_b) & 0x7
+
+    return (sign << 7) | ((exp & 0xF) << 3) | mant
 
 
 @cocotb.test()
-async def test_project(dut):
-    dut._log.info("Start")
+async def test_basic(dut):
 
-    # Set the clock period to 10 us (100 KHz)
-    clock = Clock(dut.clk, 10, unit="us")
+    # Start clock
+    clock = Clock(dut.clk, 20, units="ns")
     cocotb.start_soon(clock.start())
 
-    # Reset
-    dut._log.info("Reset")
     dut.ena.value = 1
-    dut.ui_in.value = 0
-    dut.uio_in.value = 0
+
+    # Reset
     dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
+    await Timer(40, units="ns")
     dut.rst_n.value = 1
+    await RisingEdge(dut.clk)
 
-    dut._log.info("Test project behavior")
+    # Test cases
+    test_vectors = [
+        (0b0_0101_010, 0b0_0011_001),
+        (0b1_0100_011, 0b0_0010_010),
+        (0b0_0000_000, 0b0_0101_010),  # zero
+        (0b0_1111_111, 0b0_0101_010),  # NaN
+    ]
 
-    # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
+    for a, b in test_vectors:
+        dut.ui_in.value = a
+        dut.uio_in.value = b
 
-    # Wait for one clock cycle to see the output values
-    await ClockCycles(dut.clk, 1)
+        await RisingEdge(dut.clk)
+        await RisingEdge(dut.clk)
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
+        expected = sem_mul(a, b)
+        result = dut.uo_out.value.integer
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+        assert result == expected, \
+            f"Mismatch: A={a:08b} B={b:08b} Got={result:08b} Expected={expected:08b}"
