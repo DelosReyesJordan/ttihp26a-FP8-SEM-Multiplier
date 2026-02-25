@@ -10,7 +10,7 @@ project:
   # How many tiles your design occupies?
   tiles: "1x1"
 
-  # Top module name (must match your wrapper exactly)
+  # Top module name
   top_module:  "tt_um_DelosReyesJordan_SEM"
 
   # List all source files inside ./src
