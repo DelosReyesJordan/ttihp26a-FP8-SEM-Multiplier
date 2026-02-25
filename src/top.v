@@ -43,6 +43,8 @@ module top (
     wire any_zero = A_is_zero || B_is_zero;
     
     // Sign
+    wire sign_out;
+    
     sign sign_block (
         .clk(clk),
         .reset(reset),
