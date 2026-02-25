@@ -53,3 +53,6 @@ pinout:
   uio[5]: "B_E2"
   uio[6]: "B_E3"
   uio[7]: "B_S"
+  
+# Do not change!
+yaml_version: 6
