@@ -1,6 +1,6 @@
 # 8-bit SEM Floating-Point Multiplier
 
-This project implements an experimental **8-bit Sign–Exponent–Mantissa (SEM) floating-point multiplier** for the open silicon education platform :contentReference[oaicite:0]{index=0}.
+This project implements an experimental **8-bit Sign–Exponent–Mantissa (SEM) floating-point multiplier** for TinyTapeout
 
 ## Project Overview
 
